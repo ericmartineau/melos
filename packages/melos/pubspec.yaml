@@ -12,7 +12,7 @@ dependencies:
   args: ^2.0.0
   cli_util: ^0.3.0
   collection: ^1.14.12
-  conventional_commit: ^0.4.3+1
+  conventional_commit: ^0.4.4
   file: ^6.1.0
   glob: ^2.0.1
   graphs: ^2.1.0
