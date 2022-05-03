@@ -142,31 +142,33 @@ class Script {
     required String workspacePath,
   }) {
     final scriptPath = 'scripts/$name';
-    String run;
+    List<String> run;
     String? description;
     var env = <String, String>{};
     PackageFilter? packageFilter;
     ExecOptions? exec;
 
     if (yaml is String) {
-      run = yaml;
+      run = [yaml];
     } else if (yaml is Map<Object?, Object?>) {
-      final execYaml = yaml['exec'];
-      if (execYaml is String) {
-        if (yaml['run'] is String) {
-          throw MelosConfigException(
-            'The script $name specifies a command in both "run" and "exec". '
-            'Remove one of them.',
-          );
-        }
-        run = execYaml;
-      } else {
-        run = assertKeyIsA<String>(
-          key: 'run',
+          final execYaml = yaml['exec'];
+
+    final execYaml = yaml['exec'];
+          if (execYaml is String) {
+            if (yaml['run'] is String) {
+              throw MelosConfigException(
+                'The script $name specifies a command in both "run" and "exec". '
+                'Remove one of them.',
+              );
+            }
+            run = execYaml;
+          } else {
+      run = assertListOrString(
+        key: 'name',
           map: yaml,
           path: scriptPath,
         );
-      }
+        }
 
       description = assertKeyIsA<String?>(
         key: 'description',
@@ -372,8 +374,8 @@ class Script {
   /// A unique identifier for the script.
   final String name;
 
-  /// The command specified by the user.
-  final String run;
+  /// The command to execute
+  final List<String> run;
 
   /// The command to run when executing this script.
   late final effectiveRun = _buildEffectiveCommand();

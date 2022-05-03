@@ -8,7 +8,7 @@ executables:
 dev_dependencies:
   melos:
     path: ./packages/melos
-  path: ^1.7.0
+  path: ^1.8.1
   yaml: ^3.1.0
 
 # These allows us to use melos on itself during development.

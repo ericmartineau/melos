@@ -20,7 +20,7 @@ mixin _RunMixin on _Melos {
       );
     }
 
-    final exitCode = await _runScript(
+    await _runScript(
       script,
       config,
       global: global,
@@ -69,7 +69,7 @@ mixin _RunMixin on _Melos {
     return scripts[selectedScriptIndex].name;
   }
 
-  Future<int> _runScript(
+  Future<void> _runScript(
     Script script,
     MelosWorkspaceConfig config, {
     GlobalOptions? global,
@@ -158,12 +158,21 @@ mixin _RunMixin on _Melos {
         .child(runningLabel)
         .newLine();
 
-    return startProcess(
-      scriptParts..addAll(extraArgs),
-      logger: logger,
-      environment: environment,
-      workingDirectory: config.path,
-    );
+      final exitCode = await startProcess(
+        scriptParts..addAll(extraArgs),
+        logger: logger,
+        environment: environment,
+        workingDirectory: config.path,
+      );
+
+      if (exitCode != 0) {
+        logger?.stdout('       └> ${AnsiStyles.red.bold('FAILED')}');
+        throw ScriptException._(
+          script.name,
+          script.run.length == 1 ? null : run,
+        );
+      }
+    }
   }
 }
 
@@ -212,11 +221,12 @@ class NoScriptException implements MelosException {
 }
 
 class ScriptException implements MelosException {
-  ScriptException._(this.scriptName);
+  ScriptException._(this.scriptName, [this.run]);
   final String scriptName;
+  final String? run;
 
   @override
   String toString() {
-    return 'ScriptException: The script $scriptName failed to execute';
+    return 'ScriptException: The script $scriptName failed to execute${run == null ? '' : ' while executing: $run'}';
   }
 }
