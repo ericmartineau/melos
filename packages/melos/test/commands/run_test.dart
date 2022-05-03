@@ -27,7 +27,7 @@ void main() {
             scripts: Scripts({
               'test_script': Script(
                 name: 'test_script',
-                run: 'melos exec -- "echo hello"',
+                run: ['melos exec -- "echo hello"'],
                 filter: PackageFilter(
                   fileExists: ['log.txt'],
                 ),
@@ -104,7 +104,7 @@ melos run test_script
             scripts: Scripts({
               'test_script': Script(
                 name: 'test_script',
-                run: r'echo $0 $1 $2',
+                run: [r'echo $0 $1 $2'],
               )
             }),
           ),

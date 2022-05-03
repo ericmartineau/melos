@@ -17,8 +17,8 @@ void main() {
             createGlob('packages/**', currentDirectoryPath: path),
           ],
           scripts: Scripts({
-            'test_script1': Script(name: 'test_script1', run: ''),
-            'test_script2': Script(name: 'test_script2', run: ''),
+            'test_script1': Script(name: 'test_script1', run: ['']),
+            'test_script2': Script(name: 'test_script2', run: ['']),
           }),
         ),
       );
@@ -45,7 +45,7 @@ void main() {
             createGlob('packages/**', currentDirectoryPath: path),
           ],
           scripts: Scripts({
-            'run': Script(name: 'run', run: ''),
+            'run': Script(name: 'run', run: ['']),
           }),
         ),
       );

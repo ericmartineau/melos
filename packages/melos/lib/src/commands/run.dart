@@ -19,7 +19,7 @@ mixin _RunMixin on _Melos {
       );
     }
 
-    final exitCode = await _runScript(
+    await _runScript(
       script,
       config,
       noSelect: noSelect,
@@ -28,14 +28,7 @@ mixin _RunMixin on _Melos {
 
     logger?.stdout('');
     logger?.stdout(AnsiStyles.yellow.bold('melos run ${script.name}'));
-    logger?.stdout(
-      '   └> ${AnsiStyles.cyan.bold(script.run.replaceAll('\n', ''))}',
-    );
 
-    if (exitCode != 0) {
-      logger?.stdout('       └> ${AnsiStyles.red.bold('FAILED')}');
-      throw ScriptException._(script.name);
-    }
     logger?.stdout('       └> ${AnsiStyles.green.bold('SUCCESS')}');
   }
 
@@ -64,7 +57,7 @@ mixin _RunMixin on _Melos {
     return scripts[selectedScriptIndex].name;
   }
 
-  Future<int> _runScript(
+  Future<void> _runScript(
     Script script,
     MelosWorkspaceConfig config, {
     required bool noSelect,
@@ -139,20 +132,31 @@ mixin _RunMixin on _Melos {
     }
 
     final scriptSource = script.run;
-    final scriptParts = scriptSource.split(' ');
-
     logger?.stdout(AnsiStyles.yellow.bold('melos run ${script.name}'));
-    logger?.stdout(
-      '   └> ${AnsiStyles.cyan.bold(scriptSource.replaceAll('\n', ''))}',
-    );
-    logger?.stdout('       └> ${AnsiStyles.yellow.bold('RUNNING')}\n');
 
-    return startProcess(
-      scriptParts..addAll(extraArgs),
-      logger: logger,
-      environment: environment,
-      workingDirectory: config.path,
-    );
+    for (final run in scriptSource) {
+      final scriptParts = run.split(' ');
+
+      logger?.stdout(
+        '   └> ${AnsiStyles.cyan.bold(run.replaceAll('\n', ''))}',
+      );
+      logger?.stdout('       └> ${AnsiStyles.yellow.bold('RUNNING')}\n');
+
+      final exitCode = await startProcess(
+        scriptParts..addAll(extraArgs),
+        logger: logger,
+        environment: environment,
+        workingDirectory: config.path,
+      );
+
+      if (exitCode != 0) {
+        logger?.stdout('       └> ${AnsiStyles.red.bold('FAILED')}');
+        throw ScriptException._(
+          script.name,
+          script.run.length == 1 ? null : run,
+        );
+      }
+    }
   }
 }
 
@@ -199,11 +203,12 @@ class NoScriptException implements MelosException {
 }
 
 class ScriptException implements MelosException {
-  ScriptException._(this.scriptName);
+  ScriptException._(this.scriptName, [this.run]);
   final String scriptName;
+  final String? run;
 
   @override
   String toString() {
-    return 'ScriptException: The script $scriptName failed to execute';
+    return 'ScriptException: The script $scriptName failed to execute${run == null ? '' : ' while executing: $run'}';
   }
 }

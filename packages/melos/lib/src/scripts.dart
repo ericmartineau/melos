@@ -106,19 +106,20 @@ class Script {
     required String workspacePath,
   }) {
     final scriptPath = 'scripts/$name';
-    String run;
+    List<String> run;
     String? description;
     var env = <String, String>{};
     PackageFilter? packageFilter;
 
     if (yaml is String) {
-      run = yaml;
+      run = [yaml];
     } else if (yaml is Map<Object?, Object?>) {
-      run = assertKeyIsA<String>(
-        key: 'run',
+      run = assertListOrString(
+        key: 'name',
         map: yaml,
         path: scriptPath,
       );
+
       description = assertKeyIsA<String?>(
         key: 'description',
         map: yaml,
@@ -277,7 +278,7 @@ class Script {
   final String name;
 
   /// The command to execute
-  final String run;
+  final List<String> run;
 
   /// A short description, shown when using `melos run` with no argument.
   final String? description;
