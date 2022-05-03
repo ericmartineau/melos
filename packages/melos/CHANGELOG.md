@@ -1,3 +1,7 @@
+## 2.2.0
+
+ - **FEAT**: Making run accept a List or String. ([35754003](https://github.com/invertase/melos/commit/35754003becc09f5382f729eaa6caa4c1c4a3d36))
+
 ## 2.1.0
 
  - **FEAT**: start to log `pub get` output if it runs for more than 10s (#286). ([fca44a48](https://github.com/invertase/melos/commit/fca44a480a3de9b888bde52abf184307f99b7476))

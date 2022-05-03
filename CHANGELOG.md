@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2022-05-03
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`conventional_commit` - `v0.4.4`](#conventional_commit---v044)
+ - [`melos` - `v2.2.0`](#melos---v220)
+
+---
+
+#### `conventional_commit` - `v0.4.4`
+
+ - **FEAT**: Making run accept a List or String. ([35754003](https://github.com/invertase/melos/commit/35754003becc09f5382f729eaa6caa4c1c4a3d36))
+
+#### `melos` - `v2.2.0`
+
+ - **FEAT**: Making run accept a List or String. ([35754003](https://github.com/invertase/melos/commit/35754003becc09f5382f729eaa6caa4c1c4a3d36))
+
+
 ## 2022-04-28
 
 ### Changes

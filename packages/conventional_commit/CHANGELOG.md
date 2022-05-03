@@ -1,3 +1,7 @@
+## 0.4.4
+
+ - **FEAT**: Making run accept a List or String. ([35754003](https://github.com/invertase/melos/commit/35754003becc09f5382f729eaa6caa4c1c4a3d36))
+
 ## 0.4.3
 
  - **FEAT**: allow prefixes before conventional commit type (#259). ([e856cfa5](https://github.com/invertase/melos/commit/e856cfa59f3a3c2b5bd753d2be0a1a0a512822a0))
