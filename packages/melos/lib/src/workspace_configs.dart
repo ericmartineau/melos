@@ -15,6 +15,7 @@
  *
  */
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
@@ -73,42 +74,85 @@ IDEConfigs(
 /// IntelliJ-specific configurations
 @immutable
 class IntelliJConfig {
-  const IntelliJConfig({this.enabled = true});
+  const IntelliJConfig({
+    this.enabled = true,
+    String? modulePrefix,
+    this.mainIdePackage,
+    this.excludes = const [],
+    this.generateWorkspaceModule = true,
+    this.idePackages = const [],
+  }) : modulePrefix = modulePrefix ?? 'melos_';
 
   factory IntelliJConfig.fromYaml(Object? yaml) {
-    // TODO support more granular configuration than just a boolean
-
-    final enabled = assertIsA<bool>(
-      value: yaml,
-      key: 'intellij',
-      path: 'ide',
-    );
-
-    return IntelliJConfig(enabled: enabled);
+    if (yaml is bool) {
+      return IntelliJConfig(enabled: yaml);
+    } else {
+      final config = assertIsA<Map<Object?, Object?>?>(
+            value: yaml,
+            key: 'intellij',
+            path: 'ide',
+          ) ??
+          {};
+      return IntelliJConfig(
+        enabled: config['enabled'] != false,
+        idePackages: (config['idePackages'] as List? ?? <String>[])
+            .cast<String>()
+            .toList(),
+        excludes:
+            (config['excludes'] as List? ?? <String>[]).cast<String>().toList(),
+        mainIdePackage: config['mainIdePackage'] as String?,
+        modulePrefix: config['modulePrefix'] as String?,
+        generateWorkspaceModule: config['generateWorkspaceModule'] != false,
+      );
+    }
   }
 
   static const empty = IntelliJConfig();
 
   final bool enabled;
+  final String modulePrefix;
+  final List<String> idePackages;
+  final List<String> excludes;
+  final String? mainIdePackage;
+  final bool generateWorkspaceModule;
 
   Object? toJson() {
-    return enabled;
+    return {
+      'enabled': true,
+      'modulePrefix': modulePrefix,
+      if (idePackages.isNotEmpty) 'idePackages': idePackages,
+      if (mainIdePackage != null) 'mainIdePackage': mainIdePackage,
+      if (excludes.isNotEmpty) 'excludes': excludes,
+      'generateWorkspaceModule': generateWorkspaceModule,
+    };
   }
 
   @override
   bool operator ==(Object other) =>
+      identical(this, other) ||
       other is IntelliJConfig &&
-      runtimeType == other.runtimeType &&
-      other.enabled == enabled;
+          runtimeType == other.runtimeType &&
+          enabled == other.enabled &&
+          modulePrefix == other.modulePrefix &&
+          idePackages == other.idePackages &&
+          excludes == other.excludes &&
+          mainIdePackage == other.mainIdePackage &&
+          generateWorkspaceModule == other.generateWorkspaceModule;
 
   @override
-  int get hashCode => runtimeType.hashCode ^ enabled.hashCode;
+  int get hashCode =>
+      enabled.hashCode ^
+      modulePrefix.hashCode ^
+      idePackages.hashCode ^
+      excludes.hashCode ^
+      mainIdePackage.hashCode ^
+      generateWorkspaceModule.hashCode;
 
   @override
   String toString() {
     return '''
 IntelliJConfig(
-  enabled: $enabled,
+  ${json.encode(toJson())}
 )
 ''';
   }

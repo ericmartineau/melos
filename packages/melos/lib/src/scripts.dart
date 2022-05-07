@@ -115,7 +115,7 @@ class Script {
       run = [yaml];
     } else if (yaml is Map<Object?, Object?>) {
       run = assertListOrString(
-        key: 'name',
+        key: 'run',
         map: yaml,
         path: scriptPath,
       );

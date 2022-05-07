@@ -28,7 +28,11 @@ mixin _RunMixin on _Melos {
 
     logger?.stdout('');
     logger?.stdout(AnsiStyles.yellow.bold('melos run ${script.name}'));
-
+    for (final run in script.run) {
+      logger?.stdout(
+        '   └> ${AnsiStyles.cyan.bold(run.replaceAll('\n', ''))}',
+      );
+    }
     logger?.stdout('       └> ${AnsiStyles.green.bold('SUCCESS')}');
   }
 

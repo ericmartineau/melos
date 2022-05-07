@@ -70,7 +70,7 @@ mixin _ExecMixin on _Melos {
       environment.remove('MELOS_TERMINAL_WIDTH');
     }
 
-    return startProcess(
+    final result = await startProcess(
       execArgs,
       logger: logger,
       environment: environment,
@@ -79,6 +79,8 @@ mixin _ExecMixin on _Melos {
       // The parent env is injected manually above
       includeParentEnvironment: false,
     );
+
+    return result;
   }
 
   Future<void> _execForAllPackages(

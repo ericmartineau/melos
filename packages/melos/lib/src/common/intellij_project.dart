@@ -19,6 +19,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' show join, joinAll;
 
+import '../../melos.dart';
 import '../common/utils.dart' as utils;
 import '../package.dart';
 import '../workspace.dart';
@@ -32,12 +33,25 @@ const String _kTmplExtension = '.tmpl';
 /// IntelliJ project IDE configuration helper.
 class IntellijProject {
   /// Build a new [IntellijProject] from a [MelosWorkspace].
-  IntellijProject.fromWorkspace(MelosWorkspace workspace)
-      : _workspace = workspace;
+  IntellijProject.fromWorkspace(
+    MelosWorkspace workspace, {
+    required this.forceMode,
+  }) : _workspace = workspace;
+
+  IntellijProject withMode({required bool forceMode}) {
+    return IntellijProject.fromWorkspace(
+      _workspace,
+      forceMode: forceMode,
+    );
+  }
 
   final MelosWorkspace _workspace;
+  final bool forceMode;
 
   final Map<String, String> _cacheTemplates = <String, String>{};
+
+  IntelliJConfig get config => _workspace.config.ide.intelliJ;
+  String get modulePrefix => config.modulePrefix;
 
   /// Fully qualified path to the intellij templates shipped as part of Melos.
   Future<String> get pathTemplates async {
@@ -72,12 +86,20 @@ class IntellijProject {
     return joinAll([pathDotIdea, 'modules.xml']);
   }
 
+  Iterable<Package> get idePackages {
+    final packageSet = config.idePackages.toSet();
+    return packageSet.isEmpty
+        ? _workspace.filteredPackages.values
+        : _workspace.filteredPackages.values
+            .where((element) => packageSet.contains(element.name));
+  }
+
   Future<String> pathTemplatesForDirectory(String directory) async {
     return joinAll([await pathTemplates, directory]);
   }
 
   String pathPackageModuleIml(Package package) {
-    return joinAll([package.path, 'melos_${package.name}.iml']);
+    return joinAll([package.path, '${config.modulePrefix}${package.name}.iml']);
   }
 
   String injectTemplateVariable({
@@ -107,10 +129,10 @@ class IntellijProject {
     var module = '';
     if (relativePath == null) {
       module =
-          '<module fileurl="file://\$PROJECT_DIR\$/melos_$moduleName.iml" filepath="\$PROJECT_DIR\$/melos_$moduleName.iml" />';
+          '<module fileurl="file://\$PROJECT_DIR\$/$modulePrefix$moduleName.iml" filepath="\$PROJECT_DIR\$/$modulePrefix$moduleName.iml" />';
     } else {
       module =
-          '<module fileurl="file://\$PROJECT_DIR\$/$relativePath/melos_$moduleName.iml" filepath="\$PROJECT_DIR\$/$relativePath/melos_$moduleName.iml" />';
+          '<module fileurl="file://\$PROJECT_DIR\$/$relativePath/$modulePrefix$moduleName.iml" filepath="\$PROJECT_DIR\$/$relativePath/$modulePrefix$moduleName.iml" />';
     }
     // Pad to preserve formatting on generated file. Indent x6.
     return '      $module';
@@ -140,16 +162,23 @@ class IntellijProject {
     return template;
   }
 
-  Future<void> forceWriteToFile(String filePath, String fileContents) async {
+  Future<void> writeToFile(
+    String filePath,
+    String fileContents, {
+    bool? force,
+  }) async {
+    force ??= forceMode;
     final outputFile = File(filePath);
-    await outputFile.create(recursive: true);
-    await outputFile.writeAsString(fileContents);
+    if (!outputFile.existsSync() || force) {
+      await outputFile.create(recursive: true);
+      await outputFile.writeAsString(fileContents);
+    }
   }
 
   /// Create a .name file using the workspace name.
   /// This gets picked up by the IDE and is used for display purposes.
   Future<void> writeNameFile() {
-    return forceWriteToFile(pathDotName, _workspace.config.name);
+    return writeToFile(pathDotName, _workspace.config.name);
   }
 
   String moduleTemplateFileForPackageType(PackageType type) {
@@ -165,12 +194,27 @@ class IntellijProject {
     }
   }
 
-  Future<void> writePackageModule(Package package) async {
+  Future<void> createOrUpdatePackageModule(
+    Package package, {
+    bool force = false,
+  }) async {
     final template = await readFileTemplate(
       moduleTemplateFileForPackageType(package.type),
       templateCategory: 'modules',
     );
-    return forceWriteToFile(pathPackageModuleIml(package), template);
+    final filePath = pathPackageModuleIml(package);
+    final extraExcludes = config.excludes.map((exclude) {
+      return '      <excludeFolder url="file://\$MODULE_DIR\$/$exclude" />';
+    }).join('\n');
+    return writeToFile(
+      filePath,
+      injectTemplateVariable(
+        template: template,
+        variableName: 'extraFolders',
+        variableValue: extraExcludes,
+      ),
+      force: force,
+    );
   }
 
   Future<void> writeWorkspaceModule() async {
@@ -179,8 +223,8 @@ class IntellijProject {
       templateCategory: 'modules',
     );
     final workspaceModuleName = _workspace.config.name.toLowerCase();
-    return forceWriteToFile(
-      joinAll([_workspace.path, 'melos_$workspaceModuleName.iml']),
+    return writeToFile(
+      joinAll([_workspace.path, '$modulePrefix$workspaceModuleName.iml']),
       ideaWorkspaceModuleImlTemplate,
     );
   }
@@ -188,7 +232,7 @@ class IntellijProject {
   Future<void> writeModulesXml() async {
     final ideaModules = <String>[];
     final workspaceModuleName = _workspace.config.name.toLowerCase();
-    for (final package in _workspace.filteredPackages.values) {
+    for (final package in idePackages) {
       ideaModules.add(
         ideaModuleStringForName(
           package.name,
@@ -196,14 +240,18 @@ class IntellijProject {
         ),
       );
     }
-    ideaModules.add(ideaModuleStringForName(workspaceModuleName));
+    if (config.generateWorkspaceModule) {
+      ideaModules.add(ideaModuleStringForName(workspaceModuleName));
+    }
     final ideaModulesXmlTemplate = await readFileTemplate('modules.xml');
-    final generatedModulesXml = injectTemplateVariable(
-      template: ideaModulesXmlTemplate,
-      variableName: 'modules',
-      variableValue: ideaModules.join('\n'),
+    final generatedModulesXml = injectTemplateVariables(
+      ideaModulesXmlTemplate,
+      {'modules': ideaModules.join('\n')},
     );
-    return forceWriteToFile(pathModulesXml, generatedModulesXml);
+    return writeToFile(
+      pathModulesXml,
+      generatedModulesXml,
+    );
   }
 
   String getMelosBinForIde() {
@@ -243,10 +291,10 @@ class IntellijProject {
       final outputFile = joinAll([
         pathDotIdea,
         'runConfigurations',
-        'melos_${scriptArgs.replaceAll(RegExp('[^A-Za-z0-9]'), '_')}.xml'
+        '$modulePrefix${scriptArgs.replaceAll(RegExp('[^A-Za-z0-9]'), '_')}.xml'
       ]);
 
-      await forceWriteToFile(outputFile, generatedRunConfiguration);
+      await writeToFile(outputFile, generatedRunConfiguration);
     });
   }
 
@@ -256,8 +304,7 @@ class IntellijProject {
       templateCategory: 'runConfigurations',
     );
 
-    await Future.forEach(_workspace.filteredPackages.values,
-        (Package package) async {
+    await Future.forEach(idePackages, (Package package) async {
       if (!package.isFlutterApp) return;
 
       final generatedRunConfiguration =
@@ -269,10 +316,10 @@ class IntellijProject {
       final outputFile = joinAll([
         pathDotIdea,
         'runConfigurations',
-        'melos_flutter_run_${package.name}.xml'
+        '${modulePrefix}flutter_run_${package.name}.xml'
       ]);
 
-      await forceWriteToFile(outputFile, generatedRunConfiguration);
+      await writeToFile(outputFile, generatedRunConfiguration);
     });
   }
 
@@ -282,8 +329,7 @@ class IntellijProject {
       templateCategory: 'runConfigurations',
     );
 
-    await Future.forEach(_workspace.filteredPackages.values,
-        (Package package) async {
+    await Future.forEach(idePackages, (Package package) async {
       if (!package.isFlutterPackage ||
           package.isFlutterApp ||
           !package.hasTests) {
@@ -299,10 +345,10 @@ class IntellijProject {
       final outputFile = joinAll([
         pathDotIdea,
         'runConfigurations',
-        'melos_flutter_test_${package.name}.xml'
+        '${modulePrefix}flutter_test_${package.name}.xml'
       ]);
 
-      await forceWriteToFile(outputFile, generatedRunConfiguration);
+      await writeToFile(outputFile, generatedRunConfiguration);
     });
   }
 
@@ -312,13 +358,14 @@ class IntellijProject {
 
     // <WORKSPACE_ROOT>/<PACKAGE_DIR>/<PACKAGE_NAME>.iml
 
-    await Future.forEach(_workspace.filteredPackages.values,
-        (Package package) async {
-      await writePackageModule(package);
+    await Future.forEach(idePackages, (Package package) async {
+      await createOrUpdatePackageModule(package);
     });
 
     // <WORKSPACE_ROOT>/<WORKSPACE_NAME>.iml
-    await writeWorkspaceModule();
+    if (config.generateWorkspaceModule) {
+      await writeWorkspaceModule();
+    }
 
     // <WORKSPACE_ROOT>/.idea/modules.xml
     await writeModulesXml();
