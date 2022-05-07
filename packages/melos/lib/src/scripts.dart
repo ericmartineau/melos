@@ -164,7 +164,7 @@ class Script {
             run = execYaml;
           } else {
       run = assertListOrString(
-        key: 'name',
+        key: 'run',
           map: yaml,
           path: scriptPath,
         );

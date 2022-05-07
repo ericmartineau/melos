@@ -38,7 +38,7 @@ class IdeWorkspace {
   final MelosWorkspace _workspace;
 
   late final IntellijProject intelliJ =
-      IntellijProject.fromWorkspace(_workspace);
+      IntellijProject.fromWorkspace(_workspace, forceMode: true);
 }
 
 /// A representation of a workspace. This includes it's packages, configuration

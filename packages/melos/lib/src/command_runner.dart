@@ -21,6 +21,7 @@ import 'package:args/command_runner.dart';
 import 'command_runner/bootstrap.dart';
 import 'command_runner/clean.dart';
 import 'command_runner/exec.dart';
+import 'command_runner/ide.dart';
 import 'command_runner/list.dart';
 import 'command_runner/publish.dart';
 import 'command_runner/run.dart';
@@ -62,6 +63,7 @@ class MelosCommandRunner extends CommandRunner<void> {
 
     addCommand(ExecCommand(config));
     addCommand(BootstrapCommand(config));
+    addCommand(IdeCommand(config));
     addCommand(CleanCommand(config));
     addCommand(RunCommand(config));
     addCommand(ListCommand(config));

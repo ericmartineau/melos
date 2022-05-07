@@ -17,9 +17,9 @@ dev_dependencies:
 # "'pubspec.yaml' has been modified since".. issues.
 dependency_overrides:
   conventional_commit:
-    path: ./packages/conventional_commit
+    path: /Users/ericm/sunny/ext/melos/packages/conventional_commit
   melos:
-    path: ./packages/melos
+    path: /Users/ericm/sunny/ext/melos/packages/melos
 
 environment:
   sdk: ">=2.2.2 <3.0.0"

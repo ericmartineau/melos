@@ -471,6 +471,7 @@ The packages that caused the problem are:
   final Map<String, Package> _map;
   final MelosLogger _logger;
 
+  Iterable<MapEntry<String, Package>> get entries => _map.entries;
   Iterable<String> get keys => _map.keys;
 
   Iterable<Package> get values => _map.values;

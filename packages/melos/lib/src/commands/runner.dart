@@ -45,6 +45,7 @@ part 'list.dart';
 part 'publish.dart';
 part 'run.dart';
 part 'version.dart';
+part 'ide.dart';
 
 enum ScriptLifecycle {
   bootstrap,
@@ -59,6 +60,7 @@ class Melos extends _Melos
         _RunMixin,
         _ExecMixin,
         _VersionMixin,
+        _IdeMixin,
         _PublishMixin {
   Melos({
     required this.config,
