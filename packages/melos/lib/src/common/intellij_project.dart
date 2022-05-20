@@ -97,6 +97,11 @@ class IntellijProject {
             .where((element) => packageSet.contains(element.name));
   }
 
+  Iterable<String> get extraIdePackages {
+    return config.idePackages
+        .where((packageName) => _workspace.allPackages[packageName] == null);
+  }
+
   Future<String> pathTemplatesForDirectory(String directory) async {
     return joinAll([await pathTemplates, directory]);
   }
@@ -335,6 +340,23 @@ class IntellijProject {
       ]);
 
       await writeToFile(outputFile, generatedRunConfiguration);
+      for (final extraRunner in config.runners.values) {
+        if (File(join(package.path, extraRunner.path)).existsSync()) {
+          final generatedExtraRunConfiguration =
+              injectTemplateVariables(flutterTestTemplate, {
+            'flutterRunName':
+                "Flutter Run -&gt; '${package.name} (${extraRunner.name})'",
+            'flutterRunMainDartPathRelative':
+                joinAll([package.pathRelativeToWorkspace, extraRunner.path]),
+          });
+          final outputFile = joinAll([
+            pathDotIdea,
+            'runConfigurations',
+            '${modulePrefix}flutter_run_${package.name}_${extraRunner.key}.xml'
+          ]);
+          await writeToFile(outputFile, generatedExtraRunConfiguration);
+        }
+      }
     });
   }
 

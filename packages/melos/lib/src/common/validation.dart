@@ -3,6 +3,25 @@ library validation;
 
 import 'exception.dart';
 
+typedef YamlMap = Map<Object?, Object?>;
+
+YamlMap assertIsAMapOrEmpty({
+  String? path,
+  required Object key,
+  required YamlMap map,
+}) {
+  if (!map.containsKey(key)) {
+    return {};
+  }
+
+  final value = map[key];
+  if (value is! YamlMap?) {
+    throw MelosConfigException.missingKey(key: key, path: path);
+  }
+
+  return value ?? {};
+}
+
 T assertIsA<T>({
   int? index,
   Object? key,

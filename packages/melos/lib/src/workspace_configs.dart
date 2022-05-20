@@ -80,6 +80,7 @@ class IntelliJConfig {
     String? modulePrefix,
     this.mainIdePackage,
     this.excludes = const [],
+    this.runners = const {},
     this.generateWorkspaceModule = true,
     this.idePackages = const [],
   }) : modulePrefix = modulePrefix ?? 'melos_';
@@ -94,6 +95,16 @@ class IntelliJConfig {
             path: 'ide',
           ) ??
           {};
+      var runners =
+          assertIsAMapOrEmpty(map: config, key: 'runners', path: 'intellij')
+              .map((key, value) => MapEntry(
+                    key.toString(),
+                    ExtraRunner.fromJson(
+                      key.toString(),
+                      value,
+                    ),
+                  ));
+
       return IntelliJConfig(
         enabled: config['enabled'] != false,
         idePackages: (config['idePackages'] as List? ?? <String>[])
@@ -101,6 +112,7 @@ class IntelliJConfig {
             .toList(),
         excludes:
             (config['excludes'] as List? ?? <String>[]).cast<String>().toList(),
+        runners: runners,
         mainIdePackage: config['mainIdePackage'] as String?,
         modulePrefix: config['modulePrefix'] as String?,
         generateWorkspaceModule: config['generateWorkspaceModule'] != false,
@@ -114,6 +126,7 @@ class IntelliJConfig {
   final String modulePrefix;
   final List<String> idePackages;
   final List<String> excludes;
+  final Map<String, ExtraRunner> runners;
   final String? mainIdePackage;
   final bool generateWorkspaceModule;
 
@@ -124,6 +137,7 @@ class IntelliJConfig {
       if (idePackages.isNotEmpty) 'idePackages': idePackages,
       if (mainIdePackage != null) 'mainIdePackage': mainIdePackage,
       if (excludes.isNotEmpty) 'excludes': excludes,
+      if (runners.isNotEmpty) 'runners': runners,
       'generateWorkspaceModule': generateWorkspaceModule,
     };
   }
@@ -218,6 +232,23 @@ CommandConfigs(
 )
 ''';
   }
+}
+
+class ExtraRunner {
+  const ExtraRunner(
+      {required this.name, required this.path, required this.key});
+  factory ExtraRunner.fromJson(String key, Object? input) {
+    final inputAsMap = input! as Map;
+    return ExtraRunner(
+      key: key,
+      name: inputAsMap['name'] as String,
+      path: inputAsMap['path'] as String,
+    );
+  }
+
+  final String key;
+  final String name;
+  final String path;
 }
 
 /// Configurations for `melos bootstrap`.
