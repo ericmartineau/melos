@@ -30,8 +30,8 @@ mixin _RunMixin on _Melos {
 
     logger.newLine();
     logger.command('melos run ${script.name}');
-    final resultLogger =
-        logger.child(targetStyle(script.effectiveRun.replaceAll('\n', '')));
+    final resultLogger = logger
+        .child(targetStyle(script.effectiveRun.join(';').replaceAll('\n', '')));
 
     if (exitCode != 0) {
       resultLogger.child(failedLabel);
@@ -46,7 +46,7 @@ mixin _RunMixin on _Melos {
 
     final scriptChoices = scripts.map((script) {
       final styledName = AnsiStyles.cyan(script.name);
-      final styledDescription = script.description?.let((description) {
+      final styledDescription = script.description.let((description) {
             final formattedDescription = AnsiStyles.gray(
               description.trim().split('\n').join('\n       '),
             );
@@ -149,14 +149,14 @@ mixin _RunMixin on _Melos {
       environment[envKeyMelosPackages] = packagesEnv;
     }
 
-    final scriptSource = script.effectiveRun;
-    final scriptParts = scriptSource.split(' ');
+    for (final scriptSource in script.effectiveRun) {
+      final scriptParts = scriptSource.split(' ');
 
-    logger.command('melos run ${script.name}');
-    logger
-        .child(targetStyle(scriptSource.replaceAll('\n', '')))
-        .child(runningLabel)
-        .newLine();
+      logger.command('melos run ${script.name}');
+      logger
+          .child(targetStyle(scriptSource.replaceAll('\n', '')))
+          .child(runningLabel)
+          .newLine();
 
       final exitCode = await startProcess(
         scriptParts..addAll(extraArgs),
@@ -166,10 +166,10 @@ mixin _RunMixin on _Melos {
       );
 
       if (exitCode != 0) {
-        logger?.stdout('       └> ${AnsiStyles.red.bold('FAILED')}');
+        logger.stdout('       └> ${AnsiStyles.red.bold('FAILED')}');
         throw ScriptException._(
           script.name,
-          script.run.length == 1 ? null : run,
+          script.run,
         );
       }
     }
@@ -223,10 +223,11 @@ class NoScriptException implements MelosException {
 class ScriptException implements MelosException {
   ScriptException._(this.scriptName, [this.run]);
   final String scriptName;
-  final String? run;
+  final List<String>? run;
 
   @override
   String toString() {
-    return 'ScriptException: The script $scriptName failed to execute${run == null ? '' : ' while executing: $run'}';
+    return 'ScriptException: The script $scriptName failed to '
+        'execute${run == null ? '' : ' while executing: $run'}';
   }
 }

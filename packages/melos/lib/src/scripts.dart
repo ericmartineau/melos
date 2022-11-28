@@ -37,7 +37,7 @@ class LifecycleHook {
 }
 
 class Scripts extends MapView<String, Script> {
-  const Scripts(Map<String, Script> map) : super(map);
+  const Scripts(super.map);
 
   factory Scripts.fromYaml(
     Map<Object?, Object?> yaml, {
@@ -151,24 +151,22 @@ class Script {
     if (yaml is String) {
       run = [yaml];
     } else if (yaml is Map<Object?, Object?>) {
-          final execYaml = yaml['exec'];
-
-    final execYaml = yaml['exec'];
-          if (execYaml is String) {
-            if (yaml['run'] is String) {
-              throw MelosConfigException(
-                'The script $name specifies a command in both "run" and "exec". '
-                'Remove one of them.',
-              );
-            }
-            run = execYaml;
-          } else {
-      run = assertListOrString(
-        key: 'run',
+      final execYaml = yaml['exec'];
+      if (execYaml is String) {
+        if (yaml['run'] is String) {
+          throw MelosConfigException(
+            'The script $name specifies a command in both "run" and "exec". '
+            'Remove one of them.',
+          );
+        }
+        run = [execYaml];
+      } else {
+        run = assertListOrString(
+          key: 'run',
           map: yaml,
           path: scriptPath,
         );
-        }
+      }
 
       description = assertKeyIsA<String?>(
         key: 'description',
@@ -394,27 +392,33 @@ class Script {
   /// packages.
   final ExecOptions? exec;
 
-  String _buildEffectiveCommand() {
-    String _quoteScript(String script) => '"${script.replaceAll('"', r'\"')}"';
+  List<String> _buildEffectiveCommand() {
+    String quoteScript(String script) => '"${script.replaceAll('"', r'\"')}"';
 
-    final exec = this.exec;
-    if (exec != null) {
-      final parts = ['melos', 'exec'];
+    String buildSingle(String cmd) {
+      final exec = this.exec;
+      if (exec != null) {
+        final parts = ['melos', 'exec'];
 
-      if (exec.concurrency != null) {
-        parts.addAll(['--concurrency', '${exec.concurrency}']);
+        if (exec.concurrency != null) {
+          parts.addAll(['--concurrency', '${exec.concurrency}']);
+        }
+
+        // --fail-fast is a flag and as such does not accept any value
+        if (exec.failFast ?? false) {
+          parts.add('--fail-fast');
+        }
+
+        parts.addAll(['--', quoteScript(cmd)]);
+
+        return parts.join(' ');
       }
-
-      // --fail-fast is a flag and as such does not accept any value
-      if (exec.failFast ?? false) {
-        parts.add('--fail-fast');
-      }
-
-      parts.addAll(['--', _quoteScript(run)]);
-
-      return parts.join(' ');
+      return cmd;
     }
-    return run;
+
+    return [
+      for (var cmd in run) buildSingle(cmd),
+    ];
   }
 
   Map<Object?, Object?> toJson() {

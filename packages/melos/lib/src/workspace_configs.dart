@@ -95,15 +95,17 @@ class IntelliJConfig {
             path: 'ide',
           ) ??
           {};
-      var runners =
+      final runners =
           assertIsAMapOrEmpty(map: config, key: 'runners', path: 'intellij')
-              .map((key, value) => MapEntry(
-                    key.toString(),
-                    ExtraRunner.fromJson(
-                      key.toString(),
-                      value,
-                    ),
-                  ));
+              .map(
+        (key, value) => MapEntry(
+          key.toString(),
+          ExtraRunner.fromJson(
+            key.toString(),
+            value,
+          ),
+        ),
+      );
 
       return IntelliJConfig(
         enabled: config['enabled'] != false,
@@ -235,8 +237,11 @@ CommandConfigs(
 }
 
 class ExtraRunner {
-  const ExtraRunner(
-      {required this.name, required this.path, required this.key});
+  const ExtraRunner({
+    required this.name,
+    required this.path,
+    required this.key,
+  });
   factory ExtraRunner.fromJson(String key, Object? input) {
     final inputAsMap = input! as Map;
     return ExtraRunner(
@@ -485,6 +490,8 @@ class MelosWorkspaceConfig {
     this.sdkPath,
     this.repository,
     required this.packages,
+    this.exclude = const [],
+    this.packageRoots = const [],
     this.ignore = const [],
     this.scripts = Scripts.empty,
     this.ide = IDEConfigs.empty,
@@ -547,6 +554,28 @@ class MelosWorkspaceConfig {
       ),
     );
 
+    final packageRoots = assertListIsA<String>(
+      key: 'packageRoots',
+      map: yaml,
+      isRequired: false,
+      assertItemIsA: (index, value) => assertIsA<String>(
+        value: value,
+        index: index,
+        path: 'packageRoots',
+      ),
+    );
+
+    final exclude = assertListIsA<String>(
+      key: 'exclude',
+      map: yaml,
+      isRequired: false,
+      assertItemIsA: (index, value) => assertIsA<String>(
+        value: value,
+        index: index,
+        path: 'exclude',
+      ),
+    );
+
     final scriptsMap = assertKeyIsA<Map<Object?, Object?>?>(
       key: 'scripts',
       map: yaml,
@@ -572,6 +601,8 @@ class MelosWorkspaceConfig {
       name: name,
       repository: repository,
       sdkPath: sdkPath,
+      packageRoots: packageRoots,
+      exclude: exclude,
       packages: packages
           .map((package) => createGlob(package, currentDirectoryPath: path))
           .toList(),
@@ -596,6 +627,8 @@ class MelosWorkspaceConfig {
           packages: [
             createGlob('packages/**', currentDirectoryPath: path),
           ],
+          exclude: [],
+          packageRoots: [],
           path: currentPlatform.isWindows
               ? windows.normalize(path).replaceAll(r'\', r'\\')
               : path,
@@ -673,7 +706,13 @@ You must have one of the following to be a valid Melos workspace:
   /// The hosted git repository which contains the workspace.
   final HostedGitRepository? repository;
 
-  /// A list of [Glob]s for paths that should be searched for packages.
+  /// Additional folders to scan for packages
+  final List<String> packageRoots;
+
+  /// Paths which should not be recursed into
+  final List<String> exclude;
+
+  /// A list of paths to packages that are included in the melos workspace.
   final List<Glob> packages;
 
   /// A list of [Glob]s for paths that should be excluded from the search for

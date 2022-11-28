@@ -27,7 +27,6 @@ import '../commands/runner.dart';
 import '../common/utils.dart';
 import '../common/versioning.dart';
 import '../package.dart';
-import '../workspace_configs.dart';
 import 'base.dart';
 
 /// Template variable that is replaced with versioned package info in commit
@@ -39,7 +38,7 @@ const defaultCommitMessage =
     'chore(release): publish packages\n\n{$packageVersionsTemplateVar}';
 
 class VersionCommand extends MelosCommand {
-  VersionCommand(MelosWorkspaceConfig config) : super(config) {
+  VersionCommand(super.config) {
     setupPackageFilterParser();
     argParser.addFlag(
       'prerelease',

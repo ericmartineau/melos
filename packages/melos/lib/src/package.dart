@@ -16,7 +16,6 @@
  */
 
 import 'dart:async';
-import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
@@ -372,44 +371,62 @@ class PackageMap {
     required String workspacePath,
     required List<Glob> packages,
     required List<Glob> ignore,
-    required MelosLogger logger,
+    required List<String> exclude,
+    required List<String> packageRoots,
+    MelosLogger? logger,
   }) async {
     final packageMap = <String, Package>{};
+    final allRoots = [
+      workspacePath,
+      ...packageRoots,
+    ];
+    final excludedGlobs = [
+      for (var rootPath in allRoots) ...[
+        for (var customExclude in exclude) ...[
+          createGlob(customExclude, currentDirectoryPath: rootPath),
+          createGlob('**/$customExclude', currentDirectoryPath: rootPath),
+        ],
+        for (var excludePath in [
+          '.dart_tool',
+          '.symlinks/plugins',
+          '.fvm',
+          '.plugin_symlinks'
+        ])
+          createGlob('**/$excludePath', currentDirectoryPath: rootPath),
+      ],
+    ];
 
-    final dartToolGlob =
-        createGlob('**/.dart_tool', currentDirectoryPath: workspacePath);
-    // Flutter symlinked plugins for iOS/macOS should not be included in the package list.
-    final symlinksPluginsGlob = createGlob(
-      '**/.symlinks/plugins',
-      currentDirectoryPath: workspacePath,
-    );
-    // Flutter version manager should not be included in the package list.
-    final fvmGlob = createGlob(
-      '**/.fvm',
-      currentDirectoryPath: workspacePath,
-    );
-    // Ephemeral plugin symlinked packages should not be included in the package
-    // list.
-    final pluginSymlinksGlob = createGlob(
-      '**/.plugin_symlinks',
-      currentDirectoryPath: workspacePath,
-    );
+    final pubspecsByResolvedPath = <String, File>{};
 
-    final pubspecsByResolvedPath =
-        HashMap<String, File>(equals: p.equals, hashCode: p.hash);
+    final allPackages = [
+      for (var package in packages) ...[
+        package,
+        for (var otherRoot in packageRoots)
+          createGlob(package.pattern, currentDirectoryPath: otherRoot),
+      ]
+    ];
+
+    final allIgnore = [
+      for (var ign in ignore) ...[
+        ign,
+
+        /// Apply ignore rules to all other package roots
+        for (var otherRoot in packageRoots)
+          createGlob(ign.pattern, currentDirectoryPath: otherRoot),
+      ]
+    ];
 
     Stream<FileSystemEntity> allWorkspaceEntities() async* {
-      final workspaceDir = Directory(workspacePath);
-      yield workspaceDir;
-      yield* workspaceDir.listConditionallyRecursive(
-        recurseCondition: (dir) {
-          final path = dir.path;
-          return !dartToolGlob.matches(path) &&
-              !symlinksPluginsGlob.matches(path) &&
-              !fvmGlob.matches(path) &&
-              !pluginSymlinksGlob.matches(path);
-        },
-      );
+      for (final root in allRoots) {
+        final workspaceDir = Directory(root);
+        yield workspaceDir;
+        yield* workspaceDir.listConditionallyRecursive(
+          recurseCondition: (dir) {
+            final path = dir.path;
+            return excludedGlobs.none((p0) => p0.matches(path));
+          },
+        );
+      }
     }
 
     await for (final entity in allWorkspaceEntities()) {
@@ -417,7 +434,14 @@ class PackageMap {
       late final isIncluded = packages.any((glob) => glob.matches(path)) &&
           !ignore.any((glob) => glob.matches(path));
 
-      if (entity is File && basename(path) == 'pubspec.yaml' && isIncluded) {
+      if (entity is File &&
+          basename(path) == 'pubspec.yaml' &&
+          allPackages.any(
+            (glob) => glob.matches(path) || glob.matches(dirname(path)),
+          ) &&
+          !allIgnore.any(
+            (glob) => glob.matches(path) || glob.matches(dirname(path)),
+          )) {
         final resolvedPath = await entity.resolveSymbolicLinks();
         pubspecsByResolvedPath[resolvedPath] = entity;
       } else if (entity is Directory &&
@@ -432,40 +456,53 @@ class PackageMap {
 
     await Future.wait<void>(
       allPubspecs.map((pubspecFile) async {
-        final pubspecDirPath = pubspecFile.parent.path;
-        final pubSpec = await PubSpec.load(pubspecFile.parent);
+        try {
+          final pubspecDirPath = pubspecFile.parent.path;
+          final pubSpec = await PubSpec.load(pubspecFile.parent);
 
-        final name = pubSpec.name!;
+          final name = pubSpec.name!;
 
-        if (packageMap.containsKey(name)) {
+          if (packageMap.containsKey(name)) {
+            throw MelosConfigException(
+              '''
+          Multiple allPackages with the name `$name` found in the workspace, which is unsupported.
+          To fix this problem, consider renaming your allPackages to have a unique name.
+
+          The allPackages that caused the problem are:
+          - $name at ${printablePath(relativePath(pubspecDirPath, workspacePath))}
+          - $name at ${printablePath(relativePath(packageMap[name]!.path, workspacePath))}
+          ''',
+            );
+          }
+
+          packageMap[name] = Package(
+            name: name,
+            path: pubspecDirPath,
+            pathRelativeToWorkspace:
+                relativePath(pubspecDirPath, workspacePath),
+            version: pubSpec.version ?? Version.none,
+            publishTo: pubSpec.publishTo,
+            packageMap: packageMap,
+            dependencies: pubSpec.dependencies.keys.toList(),
+            devDependencies: pubSpec.devDependencies.keys.toList(),
+            dependencyOverrides: pubSpec.dependencyOverrides.keys.toList(),
+            pubSpec: pubSpec,
+          );
+        } on MelosConfigException {
+          rethrow;
+        } catch (e, stack) {
           throw MelosConfigException(
             '''
-Multiple packages with the name `$name` found in the workspace, which is unsupported.
-To fix this problem, consider renaming your packages to have a unique name.
-
-The packages that caused the problem are:
-- $name at ${printablePath(relativePath(pubspecDirPath, workspacePath))}
-- $name at ${printablePath(relativePath(packageMap[name]!.path, workspacePath))}
-''',
+          Unknown error processing project ${dirname(pubspecFile.path)}
+          $e
+          $stack
+          ''',
           );
         }
-
-        packageMap[name] = Package(
-          name: name,
-          path: pubspecDirPath,
-          pathRelativeToWorkspace: relativePath(pubspecDirPath, workspacePath),
-          version: pubSpec.version ?? Version.none,
-          publishTo: pubSpec.publishTo,
-          packageMap: packageMap,
-          dependencies: pubSpec.dependencies.keys.toList(),
-          devDependencies: pubSpec.devDependencies.keys.toList(),
-          dependencyOverrides: pubSpec.dependencyOverrides.keys.toList(),
-          pubSpec: pubSpec,
-        );
       }),
     );
 
-    return PackageMap(packageMap, logger);
+    return PackageMap(packageMap, logger!);
   }
 
   final Map<String, Package> _map;
@@ -1131,8 +1168,8 @@ Map<String, Package> _transitivelyRelatedPackages({
 }
 
 extension on PubSpec {
-  Flutter? get flutter => (unParsedYaml?['flutter'] as Map<Object?, Object?>?)
-      .let((value) => Flutter(value));
+  Flutter? get flutter =>
+      (unParsedYaml?['flutter'] as Map<Object?, Object?>?).let(Flutter.new);
 }
 
 class Flutter {
@@ -1140,11 +1177,11 @@ class Flutter {
 
   final Map<Object?, Object?> _flutter;
 
-  Plugin? get plugin => (_flutter['plugin'] as Map<Object?, Object?>?)
-      .let((value) => Plugin(value));
+  Plugin? get plugin =>
+      (_flutter['plugin'] as Map<Object?, Object?>?).let(Plugin.new);
 
-  Module? get module => (_flutter['module'] as Map<Object?, Object?>?)
-      .let((value) => Module(value));
+  Module? get module =>
+      (_flutter['module'] as Map<Object?, Object?>?).let(Module.new);
 }
 
 class Module {

@@ -17,9 +17,9 @@ void main() {
             createGlob('packages/**', currentDirectoryPath: path),
           ],
           scripts: Scripts({
-            'test_script1': Script(name: 'test_script1', run: ['']),
-            'test_script2': Script(name: 'test_script2', run: ['']),
-            'test_script3': Script(name: 'test_script3', run: ['']),
+            'test_script1': Script(name: 'test_script1', run: const ['']),
+            'test_script2': Script(name: 'test_script2', run: const ['']),
+            'test_script3': Script(name: 'test_script3', run: const ['']),
           }),
         ),
       );
@@ -42,10 +42,10 @@ void main() {
             createGlob('packages/**', currentDirectoryPath: path),
           ],
           scripts: Scripts({
-            'run': Script(name: 'run', run: ['']),
-            'test_script1': Script(name: 'test_script1', run: ['']),
-            'test_script2': Script(name: 'test_script2', run: ['']),
-            'test_script3': Script(name: 'test_script3', run: ['']),
+            'run': Script(name: 'run', run: const ['']),
+            'test_script1': Script(name: 'test_script1', run: const ['']),
+            'test_script2': Script(name: 'test_script2', run: const ['']),
+            'test_script3': Script(name: 'test_script3', run: const ['']),
           }),
         ),
       );
@@ -65,7 +65,7 @@ void main() {
             createGlob('packages/**', currentDirectoryPath: path),
           ],
           scripts: Scripts({
-            'clean': Script(name: 'clean', run: ['']),
+            'clean': Script(name: 'clean', run: const ['']),
           }),
         ),
       );

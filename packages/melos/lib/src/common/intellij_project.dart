@@ -21,8 +21,6 @@ import 'package:path/path.dart' show join, joinAll;
 
 import '../../melos.dart';
 import '../common/utils.dart' as utils;
-import '../package.dart';
-import '../workspace.dart';
 import 'io.dart';
 import 'platform.dart';
 
@@ -37,7 +35,8 @@ class IntellijProject {
   IntellijProject.fromWorkspace(
     MelosWorkspace workspace, {
     required this.forceMode,
-  }) : _workspace = workspace;
+  })  : _workspace = workspace,
+        _logger = workspace.logger.childWithoutMessage();
 
   IntellijProject withMode({required bool forceMode}) {
     return IntellijProject.fromWorkspace(
@@ -46,6 +45,7 @@ class IntellijProject {
     );
   }
 
+  final MelosLogger _logger;
   final MelosWorkspace _workspace;
   final bool forceMode;
 
@@ -112,7 +112,7 @@ class IntellijProject {
 
   String pathWorkspaceModuleIml() {
     final workspaceModuleName = _workspace.config.name.toLowerCase();
-    return joinAll([_workspace.path, 'melos_$workspaceModuleName.iml']);
+    return joinAll([_workspace.path, '$modulePrefix$workspaceModuleName.iml']);
   }
 
   String injectTemplateVariable({
@@ -175,23 +175,23 @@ class IntellijProject {
     return template;
   }
 
-  Future<void> writeToFile(
+  void writeToFile(
     String filePath,
     String fileContents, {
     bool? force,
-  }) async {
+  }) {
     force ??= forceMode;
     final outputFile = File(filePath);
     if (!outputFile.existsSync() || force) {
-      await outputFile.create(recursive: true);
-      await outputFile.writeAsString(fileContents);
+      outputFile.createSync(recursive: true);
+      outputFile.writeAsStringSync(fileContents);
     }
   }
 
   /// Create a .name file using the workspace name.
   ///
   /// This gets picked up by the IDE and is used for display purposes.
-  Future<void> writeNameFile() {
+  void writeNameFile() {
     return writeToFile(pathDotName, _workspace.config.name);
   }
 
@@ -233,9 +233,10 @@ class IntellijProject {
   Future<void> writeWorkspaceModule() async {
     final path = pathWorkspaceModuleIml();
     if (fileExists(path)) {
-      // The user might have modified the module, so we don't want to overwrite
-      // them.
-      return;
+      _logger.warning('workspace file already exists at $path. Copying old');
+      final outputFile =
+          File('$path.backup.${DateTime.now().millisecondsSinceEpoch}');
+      outputFile.writeAsStringSync(File(path).readAsStringSync());
     }
 
     final ideaWorkspaceModuleImlTemplate = await readFileTemplate(
@@ -243,10 +244,9 @@ class IntellijProject {
       templateCategory: 'modules',
     );
     final workspaceModuleName = _workspace.config.name.toLowerCase();
-    return writeToFile(
-      joinAll([_workspace.path, '$modulePrefix$workspaceModuleName.iml']),
-      ideaWorkspaceModuleImlTemplate,
-    );
+    _logger.child(
+        '.idea/$modulePrefix$workspaceModuleName.iml (workspace module)');
+    return writeToFile(path, ideaWorkspaceModuleImlTemplate);
   }
 
   Future<void> writeModulesXml() async {
@@ -271,6 +271,7 @@ class IntellijProject {
     return writeToFile(
       pathModulesXml,
       generatedModulesXml,
+      force: true,
     );
   }
 
@@ -284,7 +285,7 @@ class IntellijProject {
     return r'$USER_HOME$/.pub-cache/bin/melos';
   }
 
-  Future<void> writeMelosScripts() async {
+  Future<void> writeMelosScripts(MelosLogger child) async {
     final melosScriptTemplate = await readFileTemplate(
       'shell_script.xml',
       templateCategory: 'runConfigurations',
@@ -314,16 +315,22 @@ class IntellijProject {
         '$modulePrefix${scriptArgs.replaceAll(RegExp('[^A-Za-z0-9]'), '_')}.xml'
       ]);
 
-      await writeToFile(outputFile, generatedRunConfiguration);
+      child.child(
+        '$modulePrefix${scriptArgs.replaceAll(RegExp('[^A-Za-z0-9]'), '_')}.xml',
+        prefix: '-  ',
+      );
+
+      writeToFile(outputFile, generatedRunConfiguration);
     });
   }
 
-  Future<void> writeFlutterRunScripts() async {
+  Future<void> writeFlutterRunScripts(MelosLogger child) async {
     final flutterTestTemplate = await readFileTemplate(
       'flutter_run.xml',
       templateCategory: 'runConfigurations',
     );
 
+    final flutter = child.child('FLUTTER:');
     await Future.forEach(idePackages, (Package package) async {
       if (!package.isFlutterApp) return;
 
@@ -339,7 +346,13 @@ class IntellijProject {
         '${modulePrefix}flutter_run_${package.name}.xml'
       ]);
 
-      await writeToFile(outputFile, generatedRunConfiguration);
+      flutter.child(
+        '${modulePrefix}flutter_run_${package.name}.xml',
+        prefix: '*  ',
+      );
+      writeToFile(outputFile, generatedRunConfiguration);
+      final extra = child.child('EXTRA RUN');
+
       for (final extraRunner in config.runners.values) {
         if (File(join(package.path, extraRunner.path)).existsSync()) {
           final generatedExtraRunConfiguration =
@@ -354,13 +367,17 @@ class IntellijProject {
             'runConfigurations',
             '${modulePrefix}flutter_run_${package.name}_${extraRunner.key}.xml'
           ]);
-          await writeToFile(outputFile, generatedExtraRunConfiguration);
+          extra.child(
+            '${modulePrefix}flutter_run_${package.name}_${extraRunner.key}.xml',
+            prefix: '*  ',
+          );
+          writeToFile(outputFile, generatedExtraRunConfiguration);
         }
       }
     });
   }
 
-  Future<void> writeFlutterTestScripts() async {
+  Future<void> writeFlutterTestScripts(MelosLogger child) async {
     final flutterTestTemplate = await readFileTemplate(
       'flutter_test.xml',
       templateCategory: 'runConfigurations',
@@ -385,32 +402,46 @@ class IntellijProject {
         '${modulePrefix}flutter_test_${package.name}.xml'
       ]);
 
-      await writeToFile(outputFile, generatedRunConfiguration);
+      writeToFile(outputFile, generatedRunConfiguration);
+      child.child(
+        '${modulePrefix}flutter_test_${package.name}.xml',
+        prefix: '*  ',
+      );
     });
   }
 
   Future<void> generate() async {
     // <WORKSPACE_ROOT>/.idea/.name
-    await writeNameFile();
+    _logger.child('.idea/.name (project name)');
+
+    writeNameFile();
 
     // <WORKSPACE_ROOT>/<PACKAGE_DIR>/<PACKAGE_NAME>.iml
 
+    final ideLog = _logger
+        .child('Create/update module .iml files: TOTAL ${idePackages.length}');
     await Future.forEach(idePackages, (Package package) async {
+      ideLog.child('.idea/${package.name}.iml', prefix: '* ');
       await createOrUpdatePackageModule(package);
     });
 
     // <WORKSPACE_ROOT>/<WORKSPACE_NAME>.iml
     if (config.generateWorkspaceModule) {
       await writeWorkspaceModule();
+    } else {
+      _logger.child('NOT generating workspace module');
     }
 
     // <WORKSPACE_ROOT>/.idea/modules.xml
     await writeModulesXml();
-
+    _logger.child('.idea/modules.xml');
     // <WORKSPACE_ROOT>/.idea/runConfigurations/<SCRIPT_NAME>.xml
-    await writeMelosScripts();
 
-    await writeFlutterRunScripts();
-    await writeFlutterTestScripts();
+    final runConfig =
+        _logger.child('.idea/runConfigurations (run configurations)');
+    await writeMelosScripts(runConfig.child('MELOS:'));
+
+    await writeFlutterRunScripts(runConfig);
+    await writeFlutterTestScripts(runConfig.child('FLUTTER TEST:'));
   }
 }

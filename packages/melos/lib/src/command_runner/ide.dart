@@ -18,12 +18,11 @@
 import 'dart:async';
 
 import '../commands/runner.dart';
-import '../workspace_configs.dart';
 
 import 'base.dart';
 
 class IdeCommand extends MelosCommand {
-  IdeCommand(MelosWorkspaceConfig config) : super(config) {
+  IdeCommand(super.config) {
     setupPackageFilterParser();
     argParser.addFlag('clean', aliases: ['c']);
     argParser.addFlag('force', aliases: ['f']);

@@ -152,8 +152,8 @@ GitLabRepository(
 }
 
 final _hostsToUrlParser = {
-  'GitHub': (Uri url) => GitHubRepository.fromUrl(url),
-  'GitLab': (Uri url) => GitLabRepository.fromUrl(url),
+  'GitHub': GitHubRepository.fromUrl,
+  'GitLab': GitLabRepository.fromUrl,
 };
 
 /// Tries to parse [url] into a [HostedGitRepository].

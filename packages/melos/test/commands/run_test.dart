@@ -25,7 +25,7 @@ void main() {
             scripts: Scripts({
               'test_script': Script(
                 name: 'test_script',
-                run: ['melos exec -- "echo hello"'],
+                run: const ['melos exec -- "echo hello"'],
                 filter: PackageFilter(
                   fileExists: const ['log.txt'],
                 ),
@@ -96,7 +96,7 @@ melos run test_script
           scripts: Scripts({
             'test_script': Script(
               name: 'test_script',
-                run: [r'echo $0 $1 $2'],
+              run: const [r'echo $0 $1 $2'],
             )
           }),
         ),
@@ -148,7 +148,7 @@ melos run test_script
           scripts: Scripts({
             'test_script': Script(
               name: 'test_script',
-              run: 'echo "hello"',
+              run: const ['echo "hello"'],
               exec: ExecOptions(
                 concurrency: 1,
               ),

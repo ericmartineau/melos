@@ -175,7 +175,7 @@ class PackageConfig {
           generator: json['generator']! as String,
           packages: (json['packages']! as List)
               .cast<Map<String, Object?>>()
-              .map((e) => PackageDependencyConfig.fromJson(e))
+              .map(PackageDependencyConfig.fromJson)
               .toList(),
         );
 

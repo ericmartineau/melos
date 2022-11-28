@@ -9,16 +9,16 @@ mixin _IdeMixin on _BootstrapMixin {
     final workspace = await createWorkspace(filter: filter);
     if (workspace.config.ide.intelliJ.enabled) {
       if (clean) {
-        logger?.stdout('');
-        logger?.stdout('Cleaning IntelliJ files...');
+        logger.stdout('');
+        logger.stdout('Cleaning IntelliJ files...');
 
         await cleanIntelliJ(workspace);
       } else {
-        logger?.stdout('');
-        logger?.stdout('Generating IntelliJ IDE files...');
+        logger.stdout('');
+        logger.stdout('Generating IntelliJ IDE files...');
 
         await workspace.ide.intelliJ.withMode(forceMode: forceMode).generate();
-        logger?.stdout('  > $_successLabel');
+        logger.stdout('  > Success');
       }
     }
   }

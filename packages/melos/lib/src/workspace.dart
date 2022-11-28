@@ -62,9 +62,11 @@ class MelosWorkspace {
     required MelosLogger logger,
   }) async {
     final allPackages = await PackageMap.resolvePackages(
+      packageRoots: workspaceConfig.packageRoots,
       workspacePath: workspaceConfig.path,
       packages: workspaceConfig.packages,
       ignore: workspaceConfig.ignore,
+      exclude: workspaceConfig.exclude,
       logger: logger,
     );
 
