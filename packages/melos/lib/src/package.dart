@@ -463,7 +463,7 @@ class PackageMap {
           final name = pubSpec.name!;
 
           if (packageMap.containsKey(name)) {
-            throw MelosConfigException(
+            logger!.error(
               '''
           Multiple allPackages with the name `$name` found in the workspace, which is unsupported.
           To fix this problem, consider renaming your allPackages to have a unique name.
@@ -473,6 +473,7 @@ class PackageMap {
           - $name at ${printablePath(relativePath(packageMap[name]!.path, workspacePath))}
           ''',
             );
+            return;
           }
 
           packageMap[name] = Package(

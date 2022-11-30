@@ -15,7 +15,9 @@ dependencies:
   conventional_commit:
     hosted: https://dart.cloudsmith.io/edspuzzles/edspuzzle-public
     version: ^0.4.4
+  dart_bom: ^1.9.0
   file: ^6.1.2
+  equatable: ^2.0.5
   glob: ^2.0.2
   graphs: ^2.1.0
   http: ^0.13.1
@@ -25,9 +27,9 @@ dependencies:
   platform: ^3.1.0
   pool: ^1.4.0
   prompts: ^2.0.0
-  pub_semver: ^2.0.0
-  pub_updater: ^0.2.2
-  pubspec: ^2.1.0
+  pub_semver: ^2.1.3
+  pub_updater: ^0.2.3
+  pubspec: ^2.3.0
   string_scanner: ^1.1.1
   yaml: ^3.1.1
   yaml_edit: ^2.0.3

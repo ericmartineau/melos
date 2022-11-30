@@ -20,6 +20,7 @@ import 'package:yaml/yaml.dart';
 import 'package:yaml_edit/yaml_edit.dart';
 
 import '../command_runner/version.dart';
+import '../command_runner/scanrepos.dart';
 import '../common/exception.dart';
 import '../common/git.dart';
 import '../common/git_commit.dart';

@@ -242,6 +242,7 @@ class ExtraRunner {
     required this.path,
     required this.key,
   });
+
   factory ExtraRunner.fromJson(String key, Object? input) {
     final inputAsMap = input! as Map;
     return ExtraRunner(
@@ -487,6 +488,7 @@ class MelosWorkspaceConfig {
   MelosWorkspaceConfig({
     required this.path,
     required this.name,
+    this.reposPath,
     this.sdkPath,
     this.repository,
     required this.packages,
@@ -505,6 +507,8 @@ class MelosWorkspaceConfig {
     required String path,
   }) {
     final name = assertKeyIsA<String>(key: 'name', map: yaml);
+    final reposPath = assertKeyIsA<String?>(key: 'reposPath', map: yaml);
+
     final isValidDartPackageNameRegExp =
         RegExp(r'^[a-z][a-z\d_-]*$', caseSensitive: false);
     if (!isValidDartPackageNameRegExp.hasMatch(name)) {
@@ -600,6 +604,7 @@ class MelosWorkspaceConfig {
       path: path,
       name: name,
       repository: repository,
+      reposPath: reposPath,
       sdkPath: sdkPath,
       packageRoots: packageRoots,
       exclude: exclude,
@@ -627,6 +632,7 @@ class MelosWorkspaceConfig {
           packages: [
             createGlob('packages/**', currentDirectoryPath: path),
           ],
+          reposPath: null,
           exclude: [],
           packageRoots: [],
           path: currentPlatform.isWindows
@@ -700,6 +706,9 @@ You must have one of the following to be a valid Melos workspace:
   /// The absolute path to the workspace folder.
   final String path;
 
+  /// Path to an external repos.yaml file, if not in the project root
+  final String? reposPath;
+
   /// The name of the melos workspace – used by IDE documentation.
   final String name;
 
@@ -768,6 +777,7 @@ You must have one of the following to be a valid Melos workspace:
       runtimeType == other.runtimeType &&
       other.path == path &&
       other.name == name &&
+      other.reposPath == reposPath &&
       other.repository == repository &&
       const DeepCollectionEquality().equals(other.packages, packages) &&
       const DeepCollectionEquality().equals(other.ignore, ignore) &&
@@ -791,6 +801,7 @@ You must have one of the following to be a valid Melos workspace:
     return {
       'name': name,
       'path': path,
+      if (reposPath != null) 'reposPath': reposPath!,
       if (repository != null) 'repository': repository!,
       'packages': packages.map((p) => p.toString()).toList(),
       if (ignore.isNotEmpty) 'ignore': ignore.map((p) => p.toString()).toList(),
@@ -806,6 +817,7 @@ You must have one of the following to be a valid Melos workspace:
 MelosWorkspaceConfig(
   path: $path,
   name: $name,
+  reposPath: $reposPath,
   repository: $repository,
   packages: $packages,
   ignore: $ignore,

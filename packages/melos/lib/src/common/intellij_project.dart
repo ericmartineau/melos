@@ -52,6 +52,7 @@ class IntellijProject {
   final Map<String, String> _cacheTemplates = <String, String>{};
 
   IntelliJConfig get config => _workspace.config.ide.intelliJ;
+
   String get modulePrefix => config.modulePrefix;
 
   /// Fully qualified path to the intellij templates shipped as part of Melos.
@@ -245,7 +246,8 @@ class IntellijProject {
     );
     final workspaceModuleName = _workspace.config.name.toLowerCase();
     _logger.child(
-        '.idea/$modulePrefix$workspaceModuleName.iml (workspace module)');
+      '.idea/$modulePrefix$workspaceModuleName.iml (workspace module)',
+    );
     return writeToFile(path, ideaWorkspaceModuleImlTemplate);
   }
 

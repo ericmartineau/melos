@@ -19,6 +19,8 @@ import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 
 import 'command_runner/bootstrap.dart';
+import 'command_runner/pubspec.dart';
+import 'command_runner/scanrepos.dart';
 import 'command_runner/clean.dart';
 import 'command_runner/exec.dart';
 import 'command_runner/ide.dart';
@@ -69,6 +71,8 @@ class MelosCommandRunner extends CommandRunner<void> {
     addCommand(ListCommand(config));
     addCommand(PublishCommand(config));
     addCommand(VersionCommand(config));
+    addCommand(ScanRepos(config));
+    addCommand(Pubspec(config));
 
     // Keep this last to exclude all built-in commands listed above
     final script = ScriptCommand.fromConfig(config, exclude: commands.keys);

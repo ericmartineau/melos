@@ -17,9 +17,12 @@
 
 import 'dart:io';
 
+import 'package:path/path.dart';
+
 import '../logging.dart';
 import '../package.dart';
 import 'git_commit.dart';
+import 'io.dart';
 
 enum TagReleaseType {
   all,
@@ -226,6 +229,33 @@ Future<void> gitAdd(
   );
 }
 
+Future<void> gitClone(
+  String repository, {
+  required String workingDirectory,
+  required String into,
+  required MelosLogger logger,
+}) async {
+  final arguments = ['clone', repository, into];
+  await gitExecuteCommand(
+    arguments: arguments,
+    workingDirectory: workingDirectory,
+    logger: logger,
+  );
+}
+
+Future<void> gitCheckout(
+  String workingDirectory, {
+  required String ref,
+  required MelosLogger logger,
+}) async {
+  final arguments = ['checkout', ref];
+  await gitExecuteCommand(
+    arguments: arguments,
+    workingDirectory: workingDirectory,
+    logger: logger,
+  );
+}
+
 /// Commit any staged changes with a specific git message.
 Future<void> gitCommit(
   String message, {
@@ -238,6 +268,44 @@ Future<void> gitCommit(
     workingDirectory: workingDirectory,
     logger: logger,
   );
+}
+
+Future<List<String>> gitTagsForRevision(
+  String revision, {
+  required String workingDirectory,
+  required MelosLogger logger,
+}) async {
+  final arguments = ['tag', '--points-at', revision];
+  final processResult = await gitExecuteCommand(
+    arguments: arguments,
+    workingDirectory: workingDirectory,
+    logger: logger,
+  );
+
+  final rawResult = processResult.stdout as String;
+  return rawResult
+      .trim()
+      .split(r'\n')
+      .where((element) => element.isNotEmpty)
+      .toList();
+}
+
+Future<List<String>> gitTagsForCurrentRevision({
+  required String workingDirectory,
+  required MelosLogger logger,
+}) async {
+  final currentRev =
+      gitCurrentRevision(workingDirectory: workingDirectory, logger: logger);
+  return gitTagsForRevision(currentRev,
+      workingDirectory: workingDirectory, logger: logger);
+}
+
+String gitCurrentRevision({
+  required String workingDirectory,
+  required MelosLogger logger,
+}) {
+  final rev = readTextFile(join(workingDirectory, '.git', 'HEAD')).trim();
+  return rev;
 }
 
 /// Returns a list of [GitCommit]s for a Melos package.
@@ -295,13 +363,20 @@ Future<String> gitGetCurrentBranchName({
   required String workingDirectory,
   required MelosLogger logger,
 }) async {
-  final arguments = ['rev-parse', '--abbrev-ref', 'HEAD'];
-  final processResult = await gitExecuteCommand(
-    arguments: arguments,
-    workingDirectory: workingDirectory,
-    logger: logger,
-  );
-  return (processResult.stdout as String).trim();
+  try {
+    final arguments = ['rev-parse', '--abbrev-ref', 'HEAD'];
+    final processResult = await gitExecuteCommand(
+      arguments: arguments,
+      workingDirectory: workingDirectory,
+      logger: logger,
+    );
+    return (processResult.stdout as String).trim();
+  } catch (e) {
+    if ('$e'.contains('unknown revision or path not in the working tree')) {
+      return '';
+    }
+    rethrow;
+  }
 }
 
 /// Fetches updates for the default remote in the repository.
@@ -315,6 +390,29 @@ Future<void> gitRemoteUpdate({
     workingDirectory: workingDirectory,
     logger: logger,
   );
+}
+
+/// Fetches updates for the default remote in the repository.
+Future<Map<String, String>> gitRemoteList({
+  required String workingDirectory,
+  required MelosLogger logger,
+}) async {
+  final arguments = ['remote', '-v'];
+  final processResult = await gitExecuteCommand(
+    arguments: arguments,
+    workingDirectory: workingDirectory,
+    logger: logger,
+  );
+  final lines = (processResult.stdout as String)
+      .trim()
+      .split('\n')
+      .where((l) => l.contains('(fetch)'))
+      .map((l) => l.split(RegExp(r'\s+')))
+      .where((element) => element.length > 1)
+      .toList();
+  return {
+    for (final line in lines) line[0]: line[1],
+  };
 }
 
 /// Determine if the local git repository is behind on commits from it's remote
