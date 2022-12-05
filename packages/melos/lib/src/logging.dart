@@ -1,5 +1,6 @@
 import 'package:ansi_styles/ansi_styles.dart';
 import 'package:cli_util/cli_logging.dart';
+import 'package:dart_bom/common/logging.dart';
 
 import 'common/utils.dart';
 
@@ -34,7 +35,7 @@ final packageNameStyle = AnsiStyles.bold;
 final errorPackageNameStyle = AnsiStyles.yellow.bold;
 
 /// CLI logger that encapsulates Melos log formatting conventions.
-class MelosLogger with _DelegateLogger {
+class MelosLogger with _DelegateLogger implements CliLogger {
   MelosLogger(
     Logger logger, {
     String indentation = '',
@@ -48,8 +49,10 @@ class MelosLogger with _DelegateLogger {
   final String _indentation;
   final String _childIndentation;
 
+  @override
   void log(String message) => stdout(message);
 
+  @override
   void command(String command, {bool withDollarSign = false}) {
     if (withDollarSign) {
       stdout('${commandColor(r'$')} ${commandStyle(command)}');
@@ -58,6 +61,7 @@ class MelosLogger with _DelegateLogger {
     }
   }
 
+  @override
   void success(String message, {bool dryRun = false}) {
     if (dryRun) {
       stdout(successMessageColor(message));
@@ -66,6 +70,7 @@ class MelosLogger with _DelegateLogger {
     }
   }
 
+  @override
   void warning(String message, {bool label = true, bool dryRun = false}) {
     final labelColor =
         dryRun ? dryRunWarningLabelColor : dryRunWarningMessageColor;
@@ -78,6 +83,7 @@ class MelosLogger with _DelegateLogger {
     }
   }
 
+  @override
   void error(String message, {bool label = true}) {
     if (label) {
       stderr('$errorLabel${errorLabelColor(':')} $message');
@@ -86,6 +92,7 @@ class MelosLogger with _DelegateLogger {
     }
   }
 
+  @override
   void hint(String message, {bool label = true}) {
     if (label) {
       stdout(hintMessageColor('$hintLabel: $message'));
@@ -94,10 +101,13 @@ class MelosLogger with _DelegateLogger {
     }
   }
 
+  @override
   void newLine() => _logger.write('\n');
 
+  @override
   void horizontalLine() => _logger.stdout('-' * terminalWidth);
 
+  @override
   MelosLogger child(
     String message, {
     String prefix = '└> ',
@@ -120,6 +130,7 @@ class MelosLogger with _DelegateLogger {
     return logger;
   }
 
+  @override
   MelosLogger childWithoutMessage({String childIndentation = '  '}) =>
       MelosLogger(
         _logger,

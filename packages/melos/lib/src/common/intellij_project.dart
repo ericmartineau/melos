@@ -318,7 +318,10 @@ class IntellijProject {
       ]);
 
       child.child(
-        '$modulePrefix${scriptArgs.replaceAll(RegExp('[^A-Za-z0-9]'), '_')}.xml',
+        '$modulePrefix${scriptArgs.replaceAll(
+          RegExp('[^A-Za-z0-9]'),
+          '_',
+        )}.xml',
         prefix: '-  ',
       );
 

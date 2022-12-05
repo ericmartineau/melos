@@ -287,6 +287,7 @@ Version incrementBuildNumber(Version currentVersion) {
   if (build.isEmpty) {
     nextBuildNumber = 0;
   } else if (build.length == 1) {
+    // ignore: unnecessary_nullable_for_final_variable_declarations
     final Object? buildNumber = build.first;
     if (buildNumber is int) {
       nextBuildNumber = buildNumber + 1;

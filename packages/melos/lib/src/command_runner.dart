@@ -19,14 +19,14 @@ import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 
 import 'command_runner/bootstrap.dart';
-import 'command_runner/pubspec.dart';
-import 'command_runner/scanrepos.dart';
 import 'command_runner/clean.dart';
 import 'command_runner/exec.dart';
 import 'command_runner/ide.dart';
 import 'command_runner/list.dart';
 import 'command_runner/publish.dart';
+import 'command_runner/pubspec.dart';
 import 'command_runner/run.dart';
+import 'command_runner/scanrepos.dart';
 import 'command_runner/script.dart';
 import 'command_runner/version.dart';
 import 'common/utils.dart';

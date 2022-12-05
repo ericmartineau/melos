@@ -20,7 +20,6 @@ import 'package:yaml/yaml.dart';
 import 'package:yaml_edit/yaml_edit.dart';
 
 import '../command_runner/version.dart';
-import '../command_runner/scanrepos.dart';
 import '../common/exception.dart';
 import '../common/git.dart';
 import '../common/git_commit.dart';
@@ -42,11 +41,11 @@ import '../workspace_configs.dart';
 part 'bootstrap.dart';
 part 'clean.dart';
 part 'exec.dart';
+part 'ide.dart';
 part 'list.dart';
 part 'publish.dart';
 part 'run.dart';
 part 'version.dart';
-part 'ide.dart';
 
 enum ScriptLifecycle {
   bootstrap,

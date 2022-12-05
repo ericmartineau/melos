@@ -1,0 +1,6 @@
+defaultMode: local
+checkoutRoot: /Users/ericm/sunny/ext/melos/packages/checkout
+sources:
+  dart_bom:
+    version: ^1.9.0
+    git: git@github.com:ericmartineau/dart_bom.git

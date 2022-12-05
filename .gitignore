@@ -5,6 +5,10 @@
 !.vscode/tasks.json
 !.vscode/settings.json
 
+checkout/
+*.iml.backup.*
+
+
 .packages
 .pub/
 .dart_tool/

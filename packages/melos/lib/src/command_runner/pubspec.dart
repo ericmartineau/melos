@@ -21,8 +21,10 @@ import 'package:dart_bom/common/io.dart';
 import 'package:dart_bom/dart_bom.dart';
 import 'package:dart_bom/local_pubspec.dart';
 import 'package:dart_bom/repos_config.dart';
+import 'package:dart_bom/sync_pubspec_override_files.dart';
 import 'package:path/path.dart';
 import 'package:pubspec/pubspec.dart';
+
 import '../../melos.dart';
 import 'base.dart';
 
@@ -88,7 +90,7 @@ class Pubspec extends MelosCommand {
         repos: repos,
         checkout: true,
       ),
-      logger.log,
+      logger,
     );
 
     logger.log(
@@ -99,8 +101,9 @@ class Pubspec extends MelosCommand {
       'repos.yaml: ${repos.sources.length} overrides',
     );
 
+    final pubspecOverridePath = join(ws.path, 'pubspec_overrides.yaml');
     writeTextFile(
-      join(ws.path, 'pubspec_overrides.yaml'),
+      pubspecOverridePath,
       const YamlToString().toYamlString({
         'dependency_overrides': {
           ...projectPubspec.dependencyOverrides,
@@ -109,6 +112,35 @@ class Pubspec extends MelosCommand {
           ...overridePubspec.dependencyOverrides,
         }.map((key, value) => MapEntry(key, value.toJson()))
       }),
+    );
+
+    // Also should sync up all child projects
+    await Future.wait(
+      [
+        for (final package in ws.allPackages.values)
+          if (package.path != ws.path)
+            _updatePubspecOverrides(
+              package,
+              pubspecOverridePath,
+            ),
+      ],
+    );
+  }
+
+  Future<void> _updatePubspecOverrides(
+    Package package,
+    String pubspecOverridePath,
+  ) async {
+    logger.log('  ${package.name} > pubspec_overrides.yaml');
+    await syncPubspecOverrideFiles(
+      logger,
+      DartBomOptions(
+        source: pubspecOverridePath,
+        target: '${package.path}/pubspec.yaml',
+        backupFiles: false,
+        writeFiles: true,
+        overwritePathDependencies: true,
+      ),
     );
   }
 }

@@ -41,7 +41,6 @@ class ScanRepos extends MelosCommand {
 
   @override
   Future<void> run() async {
-    final melos = Melos(logger: logger, config: config);
     final ws = await MelosWorkspace.fromConfig(config, logger: logger);
     final workspaceDir = Directory(ws.path);
 
@@ -65,8 +64,9 @@ class ScanRepos extends MelosCommand {
 
     const printYml = YamlToString();
 
-    for (final package in ws.allPackages.values.where((element) =>
-        transitives.isEmpty || transitives.contains(element.name))) {
+    for (final package in ws.allPackages.values.where(
+      (element) => transitives.isEmpty || transitives.contains(element.name),
+    )) {
       final packageName = package.name;
       final ch = logger.child(packageName);
       if (!repoConfig.sources.containsKey(packageName)) {

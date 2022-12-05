@@ -296,8 +296,11 @@ Future<List<String>> gitTagsForCurrentRevision({
 }) async {
   final currentRev =
       gitCurrentRevision(workingDirectory: workingDirectory, logger: logger);
-  return gitTagsForRevision(currentRev,
-      workingDirectory: workingDirectory, logger: logger);
+  return gitTagsForRevision(
+    currentRev,
+    workingDirectory: workingDirectory,
+    logger: logger,
+  );
 }
 
 String gitCurrentRevision({
